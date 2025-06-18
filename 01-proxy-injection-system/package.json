@@ -1,0 +1,31 @@
+{
+  "name": "exchain_ek_proxy_test",
+  "version": "1.0.0",
+  "description": "",
+  "main": "adapter-proxy.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/plooram/exchain-ek-proxy-test.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/plooram/exchain-ek-proxy-test/issues"
+  },
+  "homepage": "https://github.com/plooram/exchain-ek-proxy-test#readme",
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "morgan": "^1.10.0",
+    "node-fetch": "^2.7.0"
+  }
+}

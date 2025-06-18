@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 ExChain Prebid.js Debug Test Environment (Root - v3.2.2 Adapter)</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            background-color: #f8f9fa;
+        }
+        
+        .header {
+            text-align: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .debug-panel {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .debug-panel h2 {
+            margin-top: 0;
+            color: #495057;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 10px;
+        }
+        
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .ad-slot {
+            width: 300px;
+            height: 250px;
+            border: 2px dashed #6c757d;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 20px auto;
+            background: #ffffff;
+            border-radius: 8px;
+            position: relative;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .ad-slot::before {
+            content: "📺 Test Ad Slot (300x250)";
+            color: #6c757d;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            min-width: 150px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,123,255,0.3);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button.secondary {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+        }
+        
+        button.success {
+            background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+        }
+        
+        button.warning {
+            background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+        }
+        
+        button.danger {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        }
+        
+        pre {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 15px;
+            overflow-x: auto;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .status {
+            padding: 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-weight: 500;
+        }
+        
+        .status.success { 
+            background: #d4edda; 
+            border: 1px solid #c3e6cb; 
+            color: #155724;
+        }
+        
+        .status.error { 
+            background: #f8d7da; 
+            border: 1px solid #f5c6cb; 
+            color: #721c24;
+        }
+        
+        .status.warning { 
+            background: #fff3cd; 
+            border: 1px solid #ffeaa7; 
+            color: #856404;
+        }
+        
+        .status.info { 
+            background: #d1ecf1; 
+            border: 1px solid #bee5eb; 
+            color: #0c5460;
+        }
+        
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .metric {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+            border: 1px solid #e9ecef;
+        }
+        
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        
+        .metric-label {
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-radius: 50%;
+            border-top-color: #007bff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .console-output {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            max-height: 300px;
+            overflow-y: auto;
+            border-radius: 6px;
+            padding: 15px;
+        }
+        
+        .url-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔍 ExChain Prebid.js Debug Test Environment (Root - v3.2.2 Adapter)</h1>
+        <p>Real-time ORTB2 tracking and IOID debugging for Prebid.js auctions with v3.2.2 adapter proxy</p>
+    </div>
+    
+    <div class="debug-panel">
+        <h2>🎮 Debug Controls</h2>
+        <div class="controls-grid">
+            <button onclick="runDebugReport()" class="success">📊 Generate Debug Report</button>
+            <button onclick="clearDebugData()" class="secondary">🗑️ Clear Debug Data</button>
+            <button onclick="testBidRequest()" class="warning">🎯 Test Bid Request</button>
+            <button onclick="inspectCurrentOrtb2()">🔍 Inspect Current ORTB2</button>
+            <button onclick="refreshPrebidJs()" class="danger">🔄 Refresh Prebid.js</button>
+            <button onclick="checkServerStatus()">📡 Server Status</button>
+        </div>
+        
+        <div>
+            <label for="prebid-url">Custom Prebid.js URL:</label>
+            <input type="text" id="prebid-url" class="url-input" 
+                   placeholder="https://your-prebid-url.com/prebid.js" 
+                   value="">
+        </div>
+    </div>
+
+    <div class="debug-panel">
+        <h2>📊 Current Status</h2>
+        <div id="status-display">
+            <div class="status info">⏳ Initializing ExChain Debug Environment...</div>
+        </div>
+        
+        <div class="metrics" id="metrics-display">
+            <div class="metric">
+                <div class="metric-value" id="ortb2-count">0</div>
+                <div class="metric-label">ORTB2 Snapshots</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value" id="ioid-count">0</div>
+                <div class="metric-label">IOIDs Detected</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value" id="bid-count">0</div>
+                <div class="metric-label">Bid Requests</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value" id="event-count">0</div>
+                <div class="metric-label">Events Logged</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="debug-panel">
+        <h2>🎯 Test Ad Configuration</h2>
+        <div id="test-ad-slot" class="ad-slot"></div>
+        <div style="text-align: center; margin-top: 10px;">
+            <button onclick="runAuction()" class="success">▶️ Start Auction</button>
+            <button onclick="setupExchainModule()" class="warning">⚙️ Setup ExChain Module</button>
+        </div>
+    </div>
+
+    <div class="debug-panel">
+        <h2>📋 Debug Output</h2>
+        <div style="margin-bottom: 10px;">
+            <button onclick="showConsoleOutput()" class="secondary">👁️ Show Console</button>
+            <button onclick="exportDebugData()" class="secondary">💾 Export Data</button>
+            <button onclick="clearOutput()">🧹 Clear Output</button>
+        </div>
+        <pre id="debug-output">Debug information will appear here...</pre>
+    </div>
+
+    <div class="debug-panel">
+        <h2>🖥️ Console Output</h2>
+        <div id="console-output" class="console-output">
+            <div>ExChain Debug Environment initialized...</div>
+            <div>Waiting for Prebid.js to load...</div>
+        </div>
+    </div>
+
+    <!-- Load the proxied Prebid.js with debugging -->
+    <script>
+        // Configuration
+        const CONFIG = {
+            // Default Prebid.js URL (matches server config)
+            DEFAULT_PREBID_URL: 'https://content.lwgadm.com/prebid/8.52.2/ed5af547-1a82-4aa5-b07e-0c5b819de028/prebid.js',
+            PROXY_BASE_URL: window.location.origin,
+            UPDATE_INTERVAL: 2000 // Update metrics every 2 seconds
+        };
+        
+        // Global state
+        let debugState = {
+            prebidLoaded: false,
+            serverReady: false,
+            auctionRunning: false,
+            lastReport: null
+        };
+        
+        // Console output capture
+        const consoleOutput = document.getElementById('console-output');
+        const originalConsoleLog = console.log;
+        
+        function captureConsoleOutput(message, style = '') {
+            const timestamp = new Date().toISOString().substr(11, 8);
+            const div = document.createElement('div');
+            div.innerHTML = `<span style="color: #666;">[${timestamp}]</span> ${message}`;
+            if (style) div.style.cssText = style;
+            consoleOutput.appendChild(div);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+            
+            // Keep only last 100 lines
+            while (consoleOutput.children.length > 100) {
+                consoleOutput.removeChild(consoleOutput.firstChild);
+            }
+        }
+        
+        // Override console.log to capture output
+        console.log = function(...args) {
+            originalConsoleLog.apply(console, args);
+            captureConsoleOutput(args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+            ).join(' '));
+        };
+        
+        function updateStatus(message, type = 'success') {
+            const statusDiv = document.getElementById('status-display');
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+            captureConsoleOutput(`Status: ${message}`, `color: ${type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#ffc107'}`);
+        }
+        
+        function updateDebugOutput(content) {
+            document.getElementById('debug-output').textContent = content;
+        }
+        
+        function updateMetrics() {
+            if (typeof window.exchainDebug !== 'undefined' && window.exchainDebug.ortb2History) {
+                document.getElementById('ortb2-count').textContent = window.exchainDebug.ortb2History.length;
+                document.getElementById('ioid-count').textContent = 
+                    window.exchainDebug.ortb2History.filter(h => h.hasIOID).length;
+                document.getElementById('bid-count').textContent = (window.exchainDebug.bidRequests || []).length;
+                document.getElementById('event-count').textContent = (window.exchainDebug.eventLog || []).length;
+                
+                debugState.lastReport = window.exchainDebug;
+            }
+        }
+        
+        function loadPrebidJs() {
+            updateStatus('🔄 Loading ExChain Debug Prebid.js...', 'info');
+            
+            const proxyUrl = `${CONFIG.PROXY_BASE_URL}/prebid.js`;
+            
+            const script = document.createElement('script');
+            script.src = proxyUrl;
+            script.onload = function() {
+                debugState.prebidLoaded = true;
+                initializePrebid();
+            };
+            script.onerror = function() {
+                updateStatus('❌ Failed to load Prebid.js', 'error');
+            };
+            document.head.appendChild(script);
+        }
+        
+        function initializePrebid() {
+            updateStatus('✅ Prebid.js loaded, initializing debug environment...', 'success');
+            
+            // Wait for pbjs to be ready
+            const waitForPbjs = () => {
+                if (typeof pbjs !== 'undefined' && pbjs.que) {
+                    pbjs.que.push(function() {
+                        setupPrebidConfiguration();
+                    });
+                } else {
+                    setTimeout(waitForPbjs, 100);
+                }
+            };
+            
+            waitForPbjs();
+        }
+        
+        function setupPrebidConfiguration() {
+            updateStatus('⚙️ Configuring Prebid.js for testing...', 'info');
+            
+            // Configure ad units
+            const adUnits = [{
+                code: 'test-ad-slot',
+                mediaTypes: {
+                    banner: {
+                        sizes: [[300, 250]]
+                    }
+                },
+                bids: [{
+                    bidder: 'appnexus',
+                    params: {
+                        placementId: 13144370 // Test placement
+                    }
+                }]
+            }];
+            
+            pbjs.addAdUnits(adUnits);
+            
+            updateStatus('✅ Prebid.js configured and ready for testing', 'success');
+            
+            // Start metrics updates
+            setInterval(updateMetrics, CONFIG.UPDATE_INTERVAL);
+            
+            // Check if ExChain debug is available
+            setTimeout(() => {
+                if (typeof window.exchainDebug !== 'undefined') {
+                    updateStatus('🎉 ExChain Debug Mode Active - Ready for IOID tracking!', 'success');
+                } else {
+                    updateStatus('⚠️ ExChain debug instrumentation not detected', 'warning');
+                }
+                updateMetrics();
+            }, 1000);
+        }
+        
+        function runDebugReport() {
+            if (typeof debugExchain === 'function') {
+                updateStatus('📊 Generating comprehensive debug report...', 'info');
+                const report = debugExchain();
+                updateDebugOutput(JSON.stringify(report, null, 2));
+                updateMetrics();
+                updateStatus('✅ Debug report generated successfully', 'success');
+            } else {
+                updateStatus('❌ Debug function not available. Make sure Prebid.js is loaded.', 'error');
+            }
+        }
+        
+        function clearDebugData() {
+            if (typeof clearExchainDebug === 'function') {
+                clearExchainDebug();
+                updateDebugOutput('Debug data cleared.');
+                updateMetrics();
+                updateStatus('🗑️ Debug data cleared', 'success');
+            } else {
+                updateStatus('❌ Clear function not available', 'error');
+            }
+        }
+        
+        function testBidRequest() {
+            if (typeof pbjs === 'undefined') {
+                updateStatus('❌ Prebid.js not loaded', 'error');
+                return;
+            }
+            
+            debugState.auctionRunning = true;
+            updateStatus('🎯 Running test bid request...', 'warning');
+            
+            pbjs.que.push(function() {
+                pbjs.requestBids({
+                    bidsBackHandler: function(bids) {
+                        debugState.auctionRunning = false;
+                        updateStatus('✅ Bid request completed. Check debug output for details.', 'success');
+                        updateMetrics();
+                        setTimeout(runDebugReport, 500);
+                    }
+                });
+            });
+        }
+        
+        function runAuction() {
+            testBidRequest();
+        }
+        
+        function inspectCurrentOrtb2() {
+            if (typeof pbjs === 'undefined') {
+                updateStatus('❌ Prebid.js not loaded', 'error');
+                return;
+            }
+            
+            pbjs.que.push(function() {
+                const ortb2 = pbjs.getConfig('ortb2');
+                updateDebugOutput(`Current ORTB2 Configuration:\n${JSON.stringify(ortb2, null, 2)}`);
+                updateStatus('🔍 Current ORTB2 configuration displayed', 'info');
+            });
+        }
+        
+        function setupExchainModule() {
+            updateStatus('⚙️ ExChain module should auto-initialize with Prebid.js', 'info');
+            
+            // Check if debug object exists
+            setTimeout(() => {
+                if (typeof window.exchainDebug !== 'undefined') {
+                    updateStatus('✅ ExChain debug module is active', 'success');
+                } else {
+                    updateStatus('⚠️ ExChain debug module not detected - check console for errors', 'warning');
+                }
+            }, 1000);
+        }
+        
+        async function refreshPrebidJs() {
+            updateStatus('🔄 Refreshing Prebid.js from server...', 'warning');
+            
+            try {
+                const prebidUrl = document.getElementById('prebid-url').value || CONFIG.DEFAULT_PREBID_URL;
+                const response = await fetch('/refresh-prebid', {
+                    method: 'GET'
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    updateStatus(`✅ Prebid.js refreshed (${result.size})`, 'success');
+                    // Reload the page to get the fresh version
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    updateStatus(`❌ Failed to refresh: ${result.error || 'Unknown error'}`, 'error');
+                }
+            } catch (error) {
+                updateStatus(`❌ Refresh error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function checkServerStatus() {
+            updateStatus('📡 Checking server status...', 'info');
+            
+            try {
+                const response = await fetch('/status');
+                const status = await response.json();
+                
+                updateDebugOutput(`Server Status:\n${JSON.stringify(status, null, 2)}`);
+                updateStatus('✅ Server status retrieved', 'success');
+                debugState.serverReady = status.status === 'active';
+            } catch (error) {
+                updateStatus(`❌ Server status error: ${error.message}`, 'error');
+            }
+        }
+        
+        function showConsoleOutput() {
+            const consolePanel = document.getElementById('console-output');
+            consolePanel.style.display = consolePanel.style.display === 'none' ? 'block' : 'none';
+        }
+        
+        function exportDebugData() {
+            if (debugState.lastReport) {
+                const dataStr = JSON.stringify(debugState.lastReport, null, 2);
+                const dataBlob = new Blob([dataStr], {type: 'application/json'});
+                const url = URL.createObjectURL(dataBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `exchain-debug-${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.json`;
+                link.click();
+                updateStatus('💾 Debug data exported', 'success');
+            } else {
+                updateStatus('❌ No debug data to export', 'error');
+            }
+        }
+        
+        function clearOutput() {
+            updateDebugOutput('Debug output cleared.');
+            consoleOutput.innerHTML = '<div>Console output cleared...</div>';
+        }
+        
+        // Initialize when page loads
+        window.addEventListener('load', function() {
+            updateStatus('🚀 ExChain Debug Environment starting...', 'info');
+            
+            // Set default URL in input
+            document.getElementById('prebid-url').value = CONFIG.DEFAULT_PREBID_URL;
+            
+            // Load Prebid.js automatically
+            setTimeout(loadPrebidJs, 500);
+            
+            // Check server status
+            setTimeout(checkServerStatus, 1000);
+        });
+        
+        // Global helper for console access
+        window.exchainDebugUI = {
+            runReport: runDebugReport,
+            clearData: clearDebugData,
+            testBid: testBidRequest,
+            inspectOrtb2: inspectCurrentOrtb2,
+            getState: () => debugState
+        };
+    </script>
+</body>
+</html> 

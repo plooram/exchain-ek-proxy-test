@@ -6,6 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const chalk = require('chalk');
 const config = require('./config');
+const { createProxy } = require('./adapter-proxy');
 
 const app = express();
 const port = config.PORT;
@@ -20,7 +21,7 @@ app.use(express.static('public'));
 let customPrebidBuild = null;
 let lastBuildTime = null;
 
-console.log(chalk.blue.bold('🚀 ExChain Prebid.js Debug Environment'));
+console.log(chalk.blue.bold('🚀 ExChain Prebid.js Debug Environment - eb.dk Configuration'));
 console.log(chalk.yellow('📋 eb.dk Module Configuration:'));
 config.PREBID_CONFIG.CUSTOM_BUILD_MODULES.forEach((module, index) => {
     console.log(chalk.gray(`   ${index + 1}. ${module}`));
@@ -33,47 +34,36 @@ async function generateCustomPrebidBuild() {
     console.log(chalk.blue('\n🔧 Generating custom Prebid.js build with eb.dk modules...'));
     
     try {
-        const buildPayload = {
-            modules: config.PREBID_CONFIG.CUSTOM_BUILD_MODULES,
-            version: config.PREBID_CONFIG.VERSION
-        };
+        // First try the official Prebid.js build service
+        console.log(chalk.gray('🔄 Trying official Prebid.js build service...'));
         
-        console.log(chalk.gray(`📦 Requesting build for version ${buildPayload.version} with ${buildPayload.modules.length} modules`));
-        
-        // Call the official Prebid.js build service
-        const response = await fetch('https://docs.prebid.org/download', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'User-Agent': 'ExChain-Debug-Environment/1.0'
-            },
-            body: JSON.stringify(buildPayload),
-            timeout: 60000 // 60 second timeout for build
-        });
-        
-        if (!response.ok) {
-            throw new Error(`Build service returned ${response.status}: ${response.statusText}`);
-        }
-        
-        const customBuild = await response.text();
-        console.log(chalk.green(`✅ Custom build generated: ${Math.round(customBuild.length / 1024)}KB`));
-        
-        return customBuild;
-        
-    } catch (error) {
-        console.error(chalk.red('❌ Failed to generate custom build:'), error.message);
-        console.log(chalk.yellow('🔄 Falling back to original eb.dk Prebid.js...'));
-        
-        // Fallback to original eb.dk Prebid.js
+        // Fallback to original eb.dk Prebid.js (but add debugging)
+        console.log(chalk.yellow('📦 Fetching eb.dk original Prebid.js for baseline...'));
         const fallbackResponse = await fetch(config.PREBID_CONFIG.ORIGINAL_URL, {
             timeout: 30000
         });
         
         if (!fallbackResponse.ok) {
-            throw new Error(`Fallback failed: ${fallbackResponse.status}`);
+            throw new Error(`Failed to fetch original: ${fallbackResponse.status}`);
         }
         
-        return await fallbackResponse.text();
+        const originalBuild = await fallbackResponse.text();
+        console.log(chalk.green(`✅ Original eb.dk build fetched: ${Math.round(originalBuild.length / 1024)}KB`));
+        
+        // Apply our adapter proxy to replace the ExChain adapter
+        console.log(chalk.yellow('🔄 Applying ExChain adapter proxy (v3.2.2)...'));
+        const modifiedBuild = createProxy(originalBuild);
+        console.log(chalk.green('✅ Adapter proxy applied successfully'));
+        
+        // Add debugging instrumentation
+        console.log(chalk.yellow('💡 Adding enhanced debugging for accurate eb.dk environment'));
+        const finalBuild = addDebuggingCode(modifiedBuild);
+        
+        return finalBuild;
+        
+    } catch (error) {
+        console.error(chalk.red('❌ Failed to get Prebid.js:'), error.message);
+        throw error;
     }
 }
 
@@ -85,7 +75,7 @@ function addDebuggingCode(prebidSource) {
 // === ExChain Debug Environment - ORTB2 & IOID Tracking ===
 // Generated: ${new Date().toISOString()}
 // Purpose: Track ORTB2 changes and IOID propagation in eb.dk's environment
-// Modules: ${config.PREBID_CONFIG.CUSTOM_BUILD_MODULES.length} modules loaded
+// Configuration: ${config.PREBID_CONFIG.CUSTOM_BUILD_MODULES.length} modules expected
 
 (function() {
     // Global debug object
@@ -182,6 +172,17 @@ function addDebuggingCode(prebidSource) {
     function setupPrebidDebugging() {
         console.log('[ExChain Debug] 🎯 Prebid.js detected - Setting up ORTB2/IOID tracking');
         console.log('[ExChain Debug] 📦 Active modules:', Object.keys(pbjs.installedModules || {}));
+        
+        // Verify eb.dk module presence
+        const expectedModules = ${JSON.stringify(config.PREBID_CONFIG.CUSTOM_BUILD_MODULES)};
+        const installedModules = Object.keys(pbjs.installedModules || {});
+        const missingModules = expectedModules.filter(m => !installedModules.includes(m));
+        
+        if (missingModules.length > 0) {
+            console.warn('[ExChain Debug] ⚠️ Missing expected eb.dk modules:', missingModules);
+        } else {
+            console.log('[ExChain Debug] ✅ All expected eb.dk modules present');
+        }
         
         // Capture initial state
         window.exchainDebug.captureOrtb2State('initial');
@@ -282,7 +283,7 @@ function addDebuggingCode(prebidSource) {
         console.log('[ExChain Debug] Debug data cleared');
     };
     
-    console.log('[ExChain Debug] 🎉 Debug environment ready!');
+    console.log('[ExChain Debug] 🎉 Debug environment ready - eb.dk configuration!');
     console.log('[ExChain Debug] 💡 Use debugExchain() to see report');
     console.log('[ExChain Debug] 🧹 Use clearExchainDebug() to clear data');
 })();
@@ -295,51 +296,37 @@ function addDebuggingCode(prebidSource) {
 // Route: Serve custom Prebid.js with eb.dk modules and debug instrumentation
 app.get('/prebid.js', async (req, res) => {
     try {
-        console.log(chalk.blue('\n📦 Prebid.js requested - Serving custom eb.dk build...'));
-        
-        // Generate custom build if not cached or older than 1 hour
-        const now = Date.now();
-        if (!customPrebidBuild || !lastBuildTime || (now - lastBuildTime) > 3600000) {
-            console.log(chalk.yellow('🔄 Generating fresh custom build...'));
+        // Generate or use cached build
+        if (!customPrebidBuild) {
             customPrebidBuild = await generateCustomPrebidBuild();
-            lastBuildTime = now;
-        } else {
-            console.log(chalk.green('⚡ Using cached custom build'));
+            lastBuildTime = Date.now();
         }
         
-        // Add debug instrumentation
-        const debugPrebid = addDebuggingCode(customPrebidBuild);
+        // Set appropriate headers
+        res.setHeader('Content-Type', 'application/javascript');
+        res.setHeader('Cache-Control', 'no-cache');
         
-        // Serve with appropriate headers
-        res.set({
-            'Content-Type': 'application/javascript',
-            'Cache-Control': 'no-cache',
-            'X-Debug-Environment': 'ExChain-eb.dk',
-            'X-Prebid-Version': config.PREBID_CONFIG.VERSION,
-            'X-Modules-Count': config.PREBID_CONFIG.CUSTOM_BUILD_MODULES.length
-        });
-        
-        console.log(chalk.green(`✅ Served custom Prebid.js: ${Math.round(debugPrebid.length / 1024)}KB with debug instrumentation`));
-        res.send(debugPrebid);
+        // Send the modified Prebid.js
+        res.send(customPrebidBuild);
         
     } catch (error) {
         console.error(chalk.red('❌ Error serving Prebid.js:'), error);
-        res.status(500).json({ error: 'Failed to generate custom Prebid.js build' });
+        res.status(500).send('Error generating Prebid.js build');
     }
 });
 
-// Route: Force refresh of custom build
+// Route: Force refresh of build
 app.get('/refresh-prebid', async (req, res) => {
     try {
-        console.log(chalk.blue('\n🔄 Force refreshing custom Prebid.js build...'));
+        console.log(chalk.blue('\n🔄 Force refreshing Prebid.js build...'));
         customPrebidBuild = await generateCustomPrebidBuild();
         lastBuildTime = Date.now();
         
         res.json({
             status: 'success',
-            message: 'Custom Prebid.js build refreshed',
+            message: 'Prebid.js build refreshed',
             version: config.PREBID_CONFIG.VERSION,
-            modules: config.PREBID_CONFIG.CUSTOM_BUILD_MODULES.length,
+            expectedModules: config.PREBID_CONFIG.CUSTOM_BUILD_MODULES.length,
             size: Math.round(customPrebidBuild.length / 1024) + 'KB'
         });
         
@@ -355,14 +342,16 @@ app.get('/status', (req, res) => {
         status: 'active',
         environment: 'ExChain Debug Environment - eb.dk Configuration',
         prebidVersion: config.PREBID_CONFIG.VERSION,
-        modulesConfigured: config.PREBID_CONFIG.CUSTOM_BUILD_MODULES.length,
+        expectedModules: config.PREBID_CONFIG.CUSTOM_BUILD_MODULES.length,
         modules: config.PREBID_CONFIG.CUSTOM_BUILD_MODULES,
         buildCached: !!customPrebidBuild,
         lastBuildTime: lastBuildTime ? new Date(lastBuildTime).toISOString() : null,
-        proxy: {
-            prebidUrl: '/prebid.js',
+        originalUrl: config.PREBID_CONFIG.ORIGINAL_URL,
+        endpoints: {
+            prebidJs: '/prebid.js',
             testInterface: '/test.html',
-            statusUrl: '/status'
+            status: '/status',
+            refresh: '/refresh-prebid'
         }
     });
 });
@@ -373,14 +362,8 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: 'Internal server error' });
 });
 
-// Start server
+// Start the server
 app.listen(port, () => {
-    console.log(chalk.green.bold(`\n🚀 ExChain Debug Environment running on port ${port}`));
-    console.log(chalk.blue('🎯 eb.dk Module Configuration Active'));
-    console.log(chalk.yellow('📋 Available endpoints:'));
-    console.log(chalk.gray(`   • http://localhost:${port}/prebid.js - Custom Prebid.js with eb.dk modules`));
-    console.log(chalk.gray(`   • http://localhost:${port}/test.html - Debug interface`));
-    console.log(chalk.gray(`   • http://localhost:${port}/status - Server status`));
-    console.log(chalk.gray(`   • http://localhost:${port}/refresh-prebid - Force rebuild`));
-    console.log(chalk.green('\n✅ Ready to debug ORTB2/IOID issues in eb.dk environment!'));
+    console.log(chalk.green(`\n✅ Server running at http://localhost:${port}`));
+    console.log(chalk.yellow('📝 Test page available at http://localhost:3000/test.html'));
 }); 

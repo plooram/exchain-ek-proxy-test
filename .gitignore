@@ -87,4 +87,31 @@ public/build/
 
 # Misc
 *.sublime-workspace
-*.sublime-project 
+*.sublime-project
+
+# Project-specific exclusions
+# Debug logs and temporary files
+docs/DebugAndConsoleLogs/*.json
+docs/DebugAndConsoleLogs/*.log
+temp_*.js
+temp_*.html
+server-new.js
+build-prebid.js
+
+# Large binary files
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.pdf
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# OS generated files
+.DS_Store?
+ehthumbs.db
+Icon?
+Thumbs.db 
